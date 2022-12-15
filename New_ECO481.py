@@ -5,13 +5,14 @@ Created on Tue Dec  6 23:36:35 2022
 
 @author: jonathanchien
 """
-
+#Read the file and do simple descriptive statistics
 import pandas as pd
+import matplotlib.pyplot as plt
 data = pd.read_csv("/Users/jonathanchien/Documents/ECO481H Datahub/gss_clean.csv")
 data.columns = data.columns.str.replace('regilion_importance', 'religion_importance')
 new = data[["caseid", "age", "total_children", "sex", "marital_status", "education", "hh_size", "hh_type", "partner_education", 
                 "average_hours_worked", "partner_main_activity", "income_family", "occupation", "children_in_household",  
-                "religion_participation", "living_arrangement", "vis_minority"]]
+                "religion_participation", "living_arrangement", "vis_minority", "province"]]
 
 new_data = new.dropna()
 descriptive_data = new_data.describe()
@@ -28,6 +29,39 @@ new_data.drop(new_data.loc[new_data['hh_type']=="Don't know"].index, inplace=Tru
 #two values into one category
 new_data['hh_type'] = new_data['hh_type'].replace(['High-rise apartment (5 or more stories)', 'Low-rise apartment (less than 5 stories)'], ['Apartment', 'Apartment'])
 new_data['hh_type'] = new_data['hh_type'].replace(['Single detached house'], ['House'])
+#Drop all the values that does not give much insights
+new_data.drop(new_data.loc[new_data["average_hours_worked"]=="Don't know"].index, inplace=True)
+new_data.drop(new_data.loc[new_data["partner_main_activity"]=="Other"].index, inplace=True)
+new_data.drop(new_data.loc[new_data["occupation"]=='Uncodable'].index, inplace=True) 
+new_data.drop(new_data.loc[new_data["religion_participation"]== "Don't know"].index, inplace=True) 
+new_data.drop(new_data.loc[new_data["living_arrangement"]== 'Other living arrangement'].index, inplace=True) 
+new_data.drop(new_data.loc[new_data["vis_minority"]== "Don't know"].index, inplace=True) 
+#descriptive Statistics showing the apartment and house counts for all the provinces
+new_data['hh_type'].value_counts('Apartment')
+new_data123 = new_data.groupby(['province', 'hh_type'])['caseid'].count()
+new_data123 = new_data123.to_frame(name="Counts")
+new_data123 = new_data123.reset_index()
+df1 = new_data123[new_data123['hh_type']=='Apartment']
+df1.rename({'Counts': 'Apartment Counts'}, axis=1, inplace=True)
+df1.plot(kind = 'bar',
+        x = 'province',
+        y = 'Apartment Counts',
+        color = 'green')
+df2 = new_data123[new_data123['hh_type']=='House']
+df2.rename({'Counts': 'House Counts'}, axis=1, inplace=True)
+df2.plot(kind = 'bar',
+        x = 'province',
+        y = 'House Counts',
+        color = 'blue')
+
+#Since we would want to take out the biases that other provinces have a low value of apartment counts. To avoid these outliers, 
+#We will be going to drop the provinces that has a low apartment count 
+new_data.drop(new_data.loc[new_data["province"]== 'Manitoba'].index, inplace=True) 
+new_data.drop(new_data.loc[new_data["province"]== 'Prince Edward Island'].index, inplace=True) 
+new_data.drop(new_data.loc[new_data["province"]== 'Newfoundland and Labrador'].index, inplace=True) 
+new_data.drop(new_data.loc[new_data["province"]== 'Nova Scotia'].index, inplace=True)                          
+new_data.drop(new_data.loc[new_data["province"]== 'Saskatchewan'].index, inplace=True)                                                    
+new_data.drop(new_data.loc[new_data["province"]== 'New Brunswick'].index, inplace=True)                            
 
 
 #Actual Analysis 
@@ -84,7 +118,6 @@ new_data["partner_education"] = le_2.transform(new_data["partner_education"])
 
 #Categorize average working hour
 new_data["average_hours_worked"].unique()
-new_data.drop(new_data.loc[new_data["average_hours_worked"]=="Don't know"].index, inplace=True)
 
 #Encode the categorical objects to integers for scaling at the end
 let3 = ['30.0 to 40.0 hours', '50.1 hours and more', '40.1 to 50.0 hours',
@@ -111,8 +144,6 @@ new_data["marital_status"] = le_4.transform(new_data["marital_status"])
 
 #Categorize average working hours
 new_data["partner_main_activity"].unique()
-#First drop the values who has "Dont know " average working hour values
-new_data.drop(new_data.loc[new_data["partner_main_activity"]=="Other"].index, inplace=True)
 
 #Encode the categorical objects to integers for scaling at the end
 let5 = ['Working at a paid job or business', 'Going to school', 'Retired',
@@ -141,8 +172,7 @@ new_data["income_family"] = le_6.transform(new_data["income_family"])
 
 #Categorize occupation
 new_data["occupation"].unique()
-#First drop all the values with "Uncodable"
-new_data.drop(new_data.loc[new_data["occupation"]=='Uncodable'].index, inplace=True) 
+
 #Encode the categorical objects to integers for scaling at the end
 let7 = ['Sales and service occupations',
        'Trades, transport and equipment operators and related oc...',
@@ -175,8 +205,7 @@ new_data["children_in_household"] = le_8.transform(new_data["children_in_househo
 
 #Categorize religious participation
 new_data["religion_participation"].unique()
-#First drop all the values with "Don't know"
-new_data.drop(new_data.loc[new_data["religion_participation"]== "Don't know"].index, inplace=True) 
+
 
 #Encode the categorical objects to integers for scaling at the end
 let9 = ['Once or twice a year', 'Not at all', 'At least once a month',
@@ -190,8 +219,6 @@ new_data["religion_participation"] = le_9.transform(new_data["religion_participa
 
 #Categorize religious participation
 new_data["living_arrangement"].unique()
-#First drop all the values with "Don't know"
-new_data.drop(new_data.loc[new_data["living_arrangement"]== 'Other living arrangement'].index, inplace=True) 
 
 let10 = ['Alone', 'Spouse only',
        'Spouse and single child under 25 years of age',
@@ -209,9 +236,6 @@ new_data["living_arrangement"] = le_10.transform(new_data["living_arrangement"])
 
 #Categorize visible minority
 new_data["vis_minority"].unique()
-#First drop all the values with "Don't know"
-new_data.drop(new_data.loc[new_data["vis_minority"]== "Don't know"].index, inplace=True) 
-
 
 #Encode the categorical objects to integers for scaling at the end
 let11 = ['Not a visible minority', 'Visible minority', 'Visible minority', 
@@ -222,7 +246,10 @@ le_11.fit(let11)
 le_11.classes_
 new_data["vis_minority"] = le_11.transform(new_data["vis_minority"])
 #Have children: 0, No children: 1
-
+#//////////////////////////////////////////////////////////////////////////////
+#Before doing further analysis, I will need to drop the province column since we will be using the following
+#data to represent the general population 
+new_data = new_data.drop(labels='province', axis = 1) 
 #Categorize 
 #sort out to a new dataset 
 only_hh = new_data['hh_type']
@@ -232,30 +259,33 @@ new_data = new_data.drop(labels='caseid', axis = 1)
 new_data = new_data.drop(labels='hh_type', axis = 1)
 #Then let us try to split the outcome variable to training and test data
 from sklearn.model_selection import train_test_split
-x_train, x_test, y_train, y_test= train_test_split(new_data, df, test_size = 0.2)
+x_train, x_test, y_train, y_test= train_test_split(new_data, df, test_size = 0.2, random_state=0)
 
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler().fit(x_train)
-
-scaled_x_train = scaler.transform(x_train)
-scaled_x_test = scaler.transform(x_test)
 
 #Save a list of the features we want to use in the classifier 
 Features = list(new_data.columns)
 
 df_shuffled = shuffle(new_data,random_state = 2)
 
+#//////////////////////////////////////////////////////////////////////////////
+# import required modules
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from sklearn import metrics
 ##Decision tree 
 from sklearn import tree 
-from matplotlib import pyplot as plt
 
-dt_ = tree.DecisionTreeClassifier(max_depth = 3, random_state = 0)
-dt_ = dt_.fit(scaled_x_train, y_train)
+dt_ = tree.DecisionTreeClassifier(max_depth = 4, random_state = 0)
+dt_ = dt_.fit(x_train, y_train)
 
 fig = plt.figure(figsize=(25,20))
-tree.plot_tree(dt_, filled=True, impurity=True, rounded=True)
+tree.plot_tree(dt_, 
+               feature_names=Features,
+               class_names=['Apartment', 'House'],
+               filled=True, impurity=True, rounded=True, fontsize = 8)
 
-y_score2 = dt_.predict_proba(scaled_x_test)[:,1]
+y_score2 = dt_.predict_proba(x_test)[:,1]
 
 from sklearn.metrics import roc_curve, RocCurveDisplay, roc_auc_score
 
@@ -267,22 +297,128 @@ roc_display = RocCurveDisplay(fpr=fpr, tpr=tpr).plot()
 auc = roc_auc_score(y_test, y_score2)
 print('AUC_tree: %.3f' % auc)
 
+
 ##Random Forest 
 from sklearn.ensemble import RandomForestClassifier 
 from sklearn.tree import export_graphviz
 from sklearn.tree import plot_tree
-rf = RandomForestClassifier(max_depth = 3, random_state = 0)
-rf.fit(scaled_x_train, y_train)
+rf = RandomForestClassifier(max_depth = 4, random_state = 0)
+rf.fit(x_train, y_train)
 
-fig = plt.figure(figsize=(15, 10))
-plot_tree(rf.estimators_[0], 
-          filled=True, impurity=True, 
-          rounded=True)
+fig = plt.figure(figsize=(25, 20))
+plot_tree(rf.estimators_[0],
+          feature_names=Features,
+          class_names=['Apartment', 'House'],
+          filled=True, impurity=True, proportion=(70), 
+          rounded=True, fontsize=8)
+
+y_score3 = rf.predict_proba(x_test)[:,1]
+fpr, tpr, _  = roc_curve(y_test,y_score3, pos_label=rf.classes_[1])
+
+roc_display = RocCurveDisplay(fpr=fpr, tpr=tpr).plot()
+
+auc = roc_auc_score(y_test, y_score3)
+print('AUC_random_forrest: %.3f' % auc)
+print(' ')
 
 
+#Logistic Model
+df = df.replace({'Apartment':0, 'House': 1})
+y_test = y_test.replace({'Apartment':0, 'House': 1})
+y_train = y_train.replace({'Apartment':0, 'House': 1})
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+x_train_scaled = scaler.fit_transform(x_train)
+x_test_scaled = scaler.transform(x_test)
+
+logit = LogisticRegression()
+logit.fit(x_train_scaled, y_train)
+
+y_pred = logit.predict(x_train_scaled)
+logit.score(x_train_scaled, y_train)
 
 
+#Plot the logistic regression
+sns.regplot(x=x_train_scaled[:, 0], y=y_train, logistic=True)
+
+from sklearn.metrics import accuracy_score
+acc_score = accuracy_score(y_test, logit.predict(x_test_scaled))
+acc_score
+
+from sklearn.metrics import mean_squared_error
+mse = mean_squared_error(y_test, logit.predict(x_test_scaled))
+mse
+
+#use model to predict probability that given y value is 1
+y_score1 = logit.predict_proba(x_test_scaled)[:,1]
+
+from sklearn.metrics import roc_curve, RocCurveDisplay, roc_auc_score
+
+fpr, tpr, _  = roc_curve(y_test,y_score1, pos_label=logit.classes_[1])
+
+roc_display = RocCurveDisplay(fpr=fpr, tpr=tpr).plot()
+
+#//////////////////////////////////////////////////////////////////////////////
+#Decision Tree confusion matrix
+dt_matrix = metrics.confusion_matrix(y_test, np.round(abs(y_score2)))
+dt_matrix
 
 
+class_names=[0,1] # name  of classes
+fig, ax = plt.subplots()
+tick_marks = np.arange(len(class_names))
+plt.xticks(tick_marks, class_names)
+plt.yticks(tick_marks, class_names)
+# create heatmap
+sns.heatmap(pd.DataFrame(dt_matrix), annot=True, cmap="YlGnBu" ,fmt='g')
+ax.xaxis.set_label_position("top")
+plt.tight_layout()
+plt.title('Confusion matrix', y=1.1)
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+
+#Random Forest confusion matrix
+rf_matrix = metrics.confusion_matrix(y_test, np.round(abs(y_score3)))
+rf_matrix
+
+# import required modules
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+class_names=[0,1] # name  of classes
+fig, ax = plt.subplots()
+tick_marks = np.arange(len(class_names))
+plt.xticks(tick_marks, class_names)
+plt.yticks(tick_marks, class_names)
+# create heatmap
+sns.heatmap(pd.DataFrame(rf_matrix), annot=True, cmap="YlGnBu" ,fmt='g')
+ax.xaxis.set_label_position("top")
+plt.tight_layout()
+plt.title('Confusion matrix', y=1.1)
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+
+#Confusion matrix for logistic model
+cnf_matrix = metrics.confusion_matrix(y_test, np.round(abs(y_score1)))
+cnf_matrix
+# import required modules
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+class_names=[0,1] # name  of classes
+fig, ax = plt.subplots()
+tick_marks = np.arange(len(class_names))
+plt.xticks(tick_marks, class_names)
+plt.yticks(tick_marks, class_names)
+# create heatmap
+sns.heatmap(pd.DataFrame(cnf_matrix), annot=True, cmap="YlGnBu" ,fmt='g')
+ax.xaxis.set_label_position("top")
+plt.tight_layout()
+plt.title('Confusion matrix', y=1.1)
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
 
 
